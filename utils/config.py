@@ -1,0 +1,53 @@
+import argparse
+
+def parse_config():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuda', default=0, choices=[-1, 0, 1, 2, 3, 4, 5, 6, 7], type=int)
+    parser.add_argument('--dataset', default="IMDB_wri_genre", type=str)
+    parser.add_argument('--degree_as_tag', default=True, type=bool)
+    parser.add_argument('--model_name', default="KhwlHGNN", type=str)
+    parser.add_argument('--model_type', default="hypergraph", type=str)
+    parser.add_argument('--multi_threads', default=False, type=bool)
+    parser.add_argument('--nfold', default=5, type=int)
+    parser.add_argument('--runs', default=20, type=int)
+    parser.add_argument('--batch_size', default=4, type=int)
+    parser.add_argument('--tuple_K', default=2, type=int)
+    parser.add_argument('--kwl_type', default="fwl", type=str, choices=['fwl', 'owl'])
+    parser.add_argument('--task_kind', default="graph_classification", type=str, choices=['node_classification', 'link_prediction', 'graph_classification'])
+    parser.add_argument('--lr', default=0.001, type=float)
+    parser.add_argument('--wd', default=0.0, type=float)
+    parser.add_argument('--epochs', default=50, type=int)
+    parser.add_argument('--display_step', default=-1, type=int)
+    parser.add_argument('--normalization', default="bn", type=str, choices=['bn', 'ln'])
+
+    parser.add_argument('--train_prop', default=0.5, type=float)
+    parser.add_argument('--valid_prop', default=0.25, type=float)
+
+    parser.add_argument('--attack_kind', default="poisoning_attacks", type=str, choices=['poisoning_attacks', 'evasion_attacks'])
+    parser.add_argument('--node_perturbation',  default=False)
+    parser.add_argument('--hyperedge_perturbation', default=True)
+    parser.add_argument('--structure_perturbation', default=True)
+    parser.add_argument('--feature_perturbation', default=False)
+    parser.add_argument('--sub_node_feature_use_degree', default=True, type=bool, help="subgraph node feature")
+    parser.add_argument('--feature_noise_std', default=1, type=float)
+    parser.add_argument('--feature_noise_mean', default=0, type=float)
+    parser.add_argument('--num_drop', default=2, type=int, help="The number of delete a hyperedge or node")
+    parser.add_argument('--drop_rate', default=0, type=float, help="The ratio of delete a hyperedge")
+    parser.add_argument('--negative_multiplier', default=4, type=int, help="Negative samples are several times more than positive samples")
+    parser.add_argument('--change_rate', default=0.1, type=float, help="the rate to change the nodes in positive edges")
+
+    parser.add_argument('--MLP_hidden', default=64, type=int)
+    parser.add_argument('--Classifier_hidden', default=64, type=int)
+    parser.add_argument('--All_num_layers', default=3, type=int)
+    parser.add_argument('--MLP_num_layers', default=2, type=int)
+    parser.add_argument('--Classifier_num_layers', default=2, type=int)
+    parser.add_argument('--dropout', default=0.5, type=float)
+    parser.add_argument('--heads', default=4, type=int)
+
+    #graph classification args
+    parser.add_argument('--graph_num_layers', default=5, type=int)
+    parser.add_argument('--KHWL_num_layers', default=2, type=int)
+    parser.add_argument('--KHWL_hidden', default=64, type=int)
+    parser.add_argument('--sample_method', default="none", type=str, choices=['top', 'none', 'random'])
+
+    return parser.parse_args()
