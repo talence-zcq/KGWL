@@ -3,7 +3,7 @@ import argparse
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cuda', default=0, choices=[-1, 0, 1, 2, 3, 4, 5, 6, 7], type=int)
-    parser.add_argument('--dataset', default="IMDB_wri_genre", type=str)
+    parser.add_argument('--dataset', default="steam_player", type=str)
     parser.add_argument('--degree_as_tag', default=True, type=bool)
     parser.add_argument('--model_name', default="KhwlHGNN", type=str)
     parser.add_argument('--model_type', default="hypergraph", type=str)
@@ -12,7 +12,7 @@ def parse_config():
     parser.add_argument('--runs', default=20, type=int)
     parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--tuple_K', default=2, type=int)
-    parser.add_argument('--kwl_type', default="fwl", type=str, choices=['fwl', 'owl'])
+    parser.add_argument('--kwl_type', default="owl", type=str, choices=['fwl', 'owl'])
     parser.add_argument('--task_kind', default="graph_classification", type=str, choices=['node_classification', 'link_prediction', 'graph_classification'])
     parser.add_argument('--lr', default=0.001, type=float)
     parser.add_argument('--wd', default=0.0, type=float)
