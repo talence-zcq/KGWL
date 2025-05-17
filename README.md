@@ -1,5 +1,9 @@
 # Improved Expressivity of Hypergraph Neural Networks through High-Dimensional Generalized Weisfeiler-Leman Algorithms
 
+This repository contains the source code for the paper Improved Expressivity of Hypergraph Neural Networks through High-Dimensional Generalized Weisfeiler-Leman Algorithms, accepted by ICML 2025.
+
+![](utils/KHNN.png)
+
 We prepared all codes and a subset of datasets used in our experiments. 
 
 Regarding the k-tuple hypergraph dataset of k-GWL, preprocessing is performed on the first run. When k=2, depending on CPU performance, most datasets will be preprocessed within 12-24h. Please be patient.
