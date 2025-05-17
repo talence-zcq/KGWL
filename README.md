@@ -1,8 +1,8 @@
-# High-dimensional Hypergraph Weisfeiler-Leman and Neural Networks
+# Improved Expressivity of Hypergraph Neural Networks through High-Dimensional Generalized Weisfeiler-Leman Algorithms
 
 We prepared all codes and a subset of datasets used in our experiments. 
 
-Regarding the k-tuple hypergraph dataset of k-HWL, preprocessing is performed on the first run. When k=2, depending on CPU performance, most datasets will be preprocessed within 12-24h. Please be patient.
+Regarding the k-tuple hypergraph dataset of k-GWL, preprocessing is performed on the first run. When k=2, depending on CPU performance, most datasets will be preprocessed within 12-24h. Please be patient.
 
 The main codes are in the folder `model`,`utils`, and a subset of raw data are provided in folder `data`. You can run the train.py to run the experiments. 
 
@@ -11,8 +11,8 @@ This repo is tested with the following enviroment, higher version of torch PyG m
 
 First let's setup a conda enviroment
 ```
-conda create -n "KHWL" python=3.8
-conda activate KHWL
+conda create -n "KGWL" python=3.8
+conda activate KGWL
 ```
 
 First, we need to install the hyeprgraph deep learning library.

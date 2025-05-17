@@ -162,8 +162,6 @@ class KHWl_HGNN(nn.Module):
                                     dropout=args.dropout,
                                     Normalization=self.NormLayer,
                                     InputNorm=False)])
-        self.bns_v2e = nn.ModuleList([nn.BatchNorm1d(args.MLP_hidden)])
-        self.bns_e2v = nn.ModuleList([nn.BatchNorm1d(args.MLP_hidden)])
 
         for _ in range(1, self.n_layers):
             self.mlps_v2e.append(MLP(in_channels=args.MLP_hidden,
@@ -180,23 +178,24 @@ class KHWl_HGNN(nn.Module):
                                      dropout=args.dropout,
                                      Normalization=self.NormLayer,
                                      InputNorm=False))
-            self.bns_v2e.append(nn.BatchNorm1d(args.MLP_hidden))
-            self.bns_e2v.append(nn.BatchNorm1d(args.MLP_hidden))
 
-        self.k_hwl_input_mlp = MLP(in_channels=args.ft_dim+ args.MLP_hidden,
+        self.khwl_mlps_v2e = nn.ModuleList([MLP(in_channels=args.ft_dim+ args.MLP_hidden+1,
                                     hidden_channels=args.KHWL_hidden,
                                     out_channels=args.KHWL_hidden,
                                     num_layers=n_mlp_layers,
                                     dropout=args.dropout,
                                     Normalization=self.NormLayer,
-                                    InputNorm=False)
+                                    InputNorm=False)])
 
-        self.khwl_bns_v2e = nn.ModuleList()
-        self.khwl_bns_e2v = nn.ModuleList()
+        self.khwl_mlps_e2v = nn.ModuleList([MLP(in_channels=args.KHWL_hidden,
+                                    hidden_channels=args.KHWL_hidden,
+                                    out_channels=args.KHWL_hidden,
+                                    num_layers=self.khwl_mlp_layers,
+                                    dropout=args.dropout,
+                                    Normalization=self.NormLayer,
+                                    InputNorm=False)])
 
-        self.khwl_mlps_v2e = nn.ModuleList()
-        self.khwl_mlps_e2v = nn.ModuleList()
-        for _ in range(2):
+        for _ in range(self.n_layers-1):
             self.khwl_mlps_v2e.append(MLP(in_channels=args.KHWL_hidden,
                                     hidden_channels=args.KHWL_hidden,
                                     out_channels=args.KHWL_hidden,
@@ -211,8 +210,14 @@ class KHWl_HGNN(nn.Module):
                                     dropout=args.dropout,
                                     Normalization=self.NormLayer,
                                     InputNorm=False))
-            self.khwl_bns_v2e.append(nn.BatchNorm1d(args.KHWL_hidden))
-            self.khwl_bns_e2v.append(nn.BatchNorm1d(args.KHWL_hidden))
+
+        # self.x_output_mlp = MLP(in_channels=args.MLP_hidden,
+        #                             hidden_channels=int(args.MLP_hidden * 0.5),
+        #                             out_channels=args.n_classes,
+        #                             num_layers=n_mlp_layers,
+        #                             dropout=args.dropout,
+        #                             Normalization="None",
+        #                             InputNorm=False)
 
         self.k_hwl_output_mlp = MLP(in_channels=args.KHWL_hidden,
                                     hidden_channels=int(args.KHWL_hidden *0.5),
@@ -235,12 +240,6 @@ class KHWl_HGNN(nn.Module):
         G = namedtuple('G', ['v2e_src', 'v2e_dst'])
         G.v2e_src, G.v2e_dst = H.coalesce().indices()[0], H.coalesce().indices()[1]
 
-        # delete self-loop in sub_H
-        # sub_H_col = sub_H.coalesce().indices()[1]
-        # sub_H_col_counts = torch.bincount(sub_H_col)
-        # indices_to_remain = torch.where(sub_H_col_counts != 1)[0]
-        # sub_H = torch.index_select(sub_H, 1, indices_to_remain)
-
         H_T = H.transpose(0, 1).clone()
         sub_H_T = sub_H.transpose(0, 1).clone()
         khwl_H_T = khwl_H.transpose(0, 1).clone()
@@ -255,7 +254,7 @@ class KHWl_HGNN(nn.Module):
 
         # initial k_subset_graph
         sub_he = sub_H_T.mm(sub_X)
-        # sub_he = torch.concat((sub_he, torch.unsqueeze(torch.index_select(sub_e_lbl, 0, indices_to_remain), dim=-1)), dim=-1)
+        sub_he = torch.concat((sub_he, torch.unsqueeze(sub_e_lbl, dim=-1)), dim=-1)
         sub_X = sub_H.mm(sub_he)
         sub_X = scatter(sub_X, sub_batch, dim=-2)  # [N, C]
 
@@ -277,25 +276,27 @@ class KHWl_HGNN(nn.Module):
                 X = F.relu(H.mm(self.mlps_e2v[idx](Xe))+ X0)
                 X0 = X
 
+
+
         sub_k_indices = sub_k_set.view(-1)
         selected_embeddings = X.index_select(0, sub_k_indices)
         aggregated_embeddings = selected_embeddings.view(sub_k_set.size(0), sub_k_set.size(1), -1).mean(dim=1)
-        sub_X = F.relu(self.k_hwl_input_mlp(torch.concat([sub_X, aggregated_embeddings], dim=1)))
+        sub_X = torch.concat([sub_X, aggregated_embeddings], dim=1)
 
         # K-HWL calculate process
         sub_X = F.dropout(sub_X, p=0.2)  # Input dropout
-        for idx in range(1):
+        for idx in range(self.n_layers):
             if idx == 0:
+                sub_Xe = F.relu(khwl_H_T.mm(self.khwl_mlps_v2e[idx](sub_X)))
                 # sub_Xe = F.relu(khwl_H_T.mm(self.khwl_bns_v2e[idx](self.khwl_mlps_v2e[idx](sub_X))))
-                sub_Xe = F.relu(khwl_H_T.mm(self.khwl_bns_v2e[idx](self.khwl_mlps_v2e[idx](sub_X))))
                 sub_Xe0 = sub_Xe
                 sub_Xe = self.dropout(sub_Xe)
+                sub_X =  F.relu(khwl_H.mm(self.khwl_mlps_e2v[idx](sub_Xe)))
                 # sub_X =  F.relu(khwl_H.mm(self.khwl_bns_e2v[idx](self.khwl_mlps_e2v[idx](sub_Xe))))
-                sub_X =  F.relu(khwl_H.mm(self.khwl_bns_e2v[idx](self.khwl_mlps_e2v[idx](sub_Xe))))
                 sub_X0 = sub_X
             else:
                 sub_X = self.dropout(sub_X)
-                # sub_Xe = F.relu(khwl_H_T.mm(self.khwl_bns_v2e[idx](self.khwl_mlps_v2e[idx](sub_X))) + sub_Xe0)
+                # sub_Xe = F.relu(khwl_H_T.mm(self.khwl_mlps_v2e[idx](sub_X)) + sub_Xe0)
                 sub_Xe = F.relu(khwl_H_T.mm(self.khwl_mlps_v2e[idx](sub_X)) + sub_Xe0)
                 sub_Xe0 = sub_Xe
                 sub_Xe = self.dropout(sub_Xe)
@@ -309,6 +310,7 @@ class KHWl_HGNN(nn.Module):
             return res.sigmoid()
         else:
             return res
+
 
 class UniGCNII_g(nn.Module):
     def __init__(self, args):
